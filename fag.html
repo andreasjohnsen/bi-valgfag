@@ -24,6 +24,7 @@
     --bi-radius-small:var(--bi-scale-0-50x);
     --bi-basic-white:#fff;
     --bi-neutral-15:#d5dde4;
+    --bi-neutral-30:#acbbca;
     --bi-neutral-95:#222d38;
     --bi-primary-50:#0a64ff;
     --bi-states-focus:var(--bi-primary-50);
@@ -55,6 +56,8 @@
   .elective-page .year .elective-table th.course-header{width:60%;padding-left:var(--bi-scale-2x)}
   .elective-page .year .elective-table td{font:var(--bi-font-body-xl);padding:var(--bi-scale-2x);border-bottom:var(--bi-stroke-thin) solid var(--bi-neutral-15);line-height:1.1}
   .elective-page .year .elective-table input[type=checkbox]{width:1.25rem;height:1.25rem;margin:0;vertical-align:middle;accent-color:var(--bi-primary-50);cursor:pointer}
+  .elective-page .year .elective-table tr.is-favoritt td[scope=row] .bi-link{font-weight:var(--bi-font-weight-bold)}
+  .elective-page .year .elective-table tr.is-skjult td[scope=row] .bi-link{color:var(--bi-neutral-30);--bic-link-color:var(--bi-neutral-30)}
   @media (width<=768px){.elective-page .year .elective-table th:first-child,.elective-page .year .elective-table td:first-child{padding:0}}
 </style>
 </head>
@@ -1049,5 +1052,21 @@
     </table>
   </div>
 </article>
+<script>
+  (function () {
+    var table = document.querySelector('.elective-table');
+    function update(box) {
+      var row = box.closest('tr');
+      if (!row) return;
+      if (box.classList.contains('favoritt-checkbox')) row.classList.toggle('is-favoritt', box.checked);
+      if (box.classList.contains('skjul-checkbox')) row.classList.toggle('is-skjult', box.checked);
+    }
+    table.addEventListener('change', function (e) {
+      if (e.target.matches('input[type=checkbox]')) update(e.target);
+    });
+    // Sync state on load in case the browser restored checkbox values.
+    table.querySelectorAll('input[type=checkbox]').forEach(update);
+  })();
+</script>
 </body>
 </html>
