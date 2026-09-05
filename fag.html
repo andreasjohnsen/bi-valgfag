@@ -1054,18 +1054,57 @@
 </article>
 <script>
   (function () {
+    var STORAGE_KEY = 'bi-valgfag-checkboxes';
     var table = document.querySelector('.elective-table');
-    function update(box) {
+
+    function courseName(row) {
+      var cell = row.querySelector('td[scope=row]');
+      return cell ? cell.textContent.trim() : '';
+    }
+
+    function loadState() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        var parsed = raw ? JSON.parse(raw) : null;
+        if (parsed && typeof parsed === 'object') {
+          return { favoritt: parsed.favoritt || {}, skjul: parsed.skjul || {} };
+        }
+      } catch (e) { /* storage unavailable or corrupt: fall through */ }
+      return { favoritt: {}, skjul: {} };
+    }
+
+    function saveState(state) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+    }
+
+    var state = loadState();
+
+    function update(box, persist) {
       var row = box.closest('tr');
       if (!row) return;
-      if (box.classList.contains('favoritt-checkbox')) row.classList.toggle('is-favoritt', box.checked);
-      if (box.classList.contains('skjul-checkbox')) row.classList.toggle('is-skjult', box.checked);
+      var name = courseName(row);
+      var kind = box.classList.contains('favoritt-checkbox') ? 'favoritt'
+               : box.classList.contains('skjul-checkbox') ? 'skjul' : null;
+      if (!kind) return;
+      row.classList.toggle(kind === 'favoritt' ? 'is-favoritt' : 'is-skjult', box.checked);
+      if (persist) {
+        if (box.checked) state[kind][name] = true; else delete state[kind][name];
+        saveState(state);
+      }
     }
-    table.addEventListener('change', function (e) {
-      if (e.target.matches('input[type=checkbox]')) update(e.target);
+
+    // Restore saved state, then sync row styling.
+    table.querySelectorAll('input[type=checkbox]').forEach(function (box) {
+      var row = box.closest('tr');
+      var name = row ? courseName(row) : '';
+      if (box.classList.contains('favoritt-checkbox')) box.checked = !!state.favoritt[name];
+      if (box.classList.contains('skjul-checkbox')) box.checked = !!state.skjul[name];
+      update(box, false);
     });
-    // Sync state on load in case the browser restored checkbox values.
-    table.querySelectorAll('input[type=checkbox]').forEach(update);
+
+    table.addEventListener('change', function (e) {
+      if (e.target.matches('input[type=checkbox]')) update(e.target, true);
+    });
   })();
 </script>
 </body>
