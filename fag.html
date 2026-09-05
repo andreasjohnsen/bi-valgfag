@@ -58,6 +58,11 @@
   .elective-page .year .elective-table input[type=checkbox]{width:1.25rem;height:1.25rem;margin:0;vertical-align:middle;accent-color:var(--bi-primary-50);cursor:pointer}
   .elective-page .year .elective-table tr.is-favoritt td[scope=row] .bi-link{font-weight:var(--bi-font-weight-bold)}
   .elective-page .year .elective-table tr.is-skjult td[scope=row] .bi-link{color:var(--bi-neutral-30);--bic-link-color:var(--bi-neutral-30)}
+  .elective-page .year .elective-table .filter-toggle{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-decoration:none;border-radius:var(--bi-radius-small)}
+  .elective-page .year .elective-table .filter-toggle:hover{color:var(--bi-primary-50)}
+  .elective-page .year .elective-table .filter-toggle:focus-visible{outline:3px solid var(--bi-states-focus);outline-offset:var(--bi-scale-1x)}
+  .elective-page .year .elective-table .filter-toggle[aria-pressed=true]{color:var(--bi-primary-50);text-decoration:underline;text-decoration-thickness:.125em;text-underline-offset:.25em}
+  .elective-page .year .elective-table tbody tr[hidden]{display:none}
   @media (width<=768px){.elective-page .year .elective-table th:first-child,.elective-page .year .elective-table td:first-child{padding:0}}
 </style>
 </head>
@@ -67,11 +72,11 @@
     <table class="elective-table">
       <thead>
         <tr>
-          <th scope="col">Favoritt</th>
-          <th scope="col">Skjul</th>
+          <th scope="col"><button type="button" class="filter-toggle" data-filter="favoritt" aria-pressed="false">Favoritt</button></th>
+          <th scope="col"><button type="button" class="filter-toggle" data-filter="skjul" aria-pressed="false">Skjul</button></th>
           <th scope="col" class="course-header">Kursnavn</th>
-          <th scope="col">Høst</th>
-          <th scope="col">Vår</th>
+          <th scope="col"><button type="button" class="filter-toggle" data-filter="host" aria-pressed="false">Høst</button></th>
+          <th scope="col"><button type="button" class="filter-toggle" data-filter="var" aria-pressed="false">Vår</button></th>
         </tr>
       </thead>
       <tbody>
@@ -1102,8 +1107,39 @@
       update(box, false);
     });
 
+    // Column-title filters. All off by default.
+    var filters = { favoritt: false, skjul: false, host: false, var: false };
+
+    function hasX(cell) { return !!cell && cell.textContent.trim() === 'X'; }
+
+    function applyFilters() {
+      table.querySelectorAll('tbody tr').forEach(function (row) {
+        var cells = row.children;
+        var favoritt = cells[0].querySelector('input[type=checkbox]');
+        var skjul = cells[1].querySelector('input[type=checkbox]');
+        var visible = true;
+        if (filters.favoritt && !(favoritt && favoritt.checked)) visible = false;
+        if (filters.skjul && skjul && skjul.checked) visible = false;
+        if (filters.host && !hasX(cells[3])) visible = false;
+        if (filters.var && !hasX(cells[4])) visible = false;
+        row.hidden = !visible;
+      });
+    }
+
+    table.querySelectorAll('.filter-toggle').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var key = button.getAttribute('data-filter');
+        filters[key] = !filters[key];
+        button.setAttribute('aria-pressed', String(filters[key]));
+        applyFilters();
+      });
+    });
+
     table.addEventListener('change', function (e) {
-      if (e.target.matches('input[type=checkbox]')) update(e.target, true);
+      if (e.target.matches('input[type=checkbox]')) {
+        update(e.target, true);
+        applyFilters();
+      }
     });
   })();
 </script>
