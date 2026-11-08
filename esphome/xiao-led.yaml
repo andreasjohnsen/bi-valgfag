@@ -118,3 +118,29 @@ light:
     gamma_correct: 1.0      # gamma er allerede brukt i "LED-stripe"
     default_transition_length: 0s
     restore_mode: ALWAYS_OFF
+    effects:
+      - addressable_scan:
+          name: "Scan"
+          move_interval: 150ms
+          scan_width: 1
+
+# Knapp i web-grensesnittet som starter scan-effekten på LED-stripen.
+# Lysstyrken styres fortsatt med "LED-stripe"-slideren, og effekten
+# stoppes ved å slå av "LED-stripe".
+button:
+  - platform: template
+    name: "Start"
+    on_press:
+      # Slå på stripen med full lysstyrke hvis den er av
+      - if:
+          condition:
+            light.is_off: stripe
+          then:
+            - light.turn_on:
+                id: stripe
+                brightness: 100%
+                transition_length: 0s
+      # Start scan-effekten
+      - light.turn_on:
+          id: stripe_raw
+          effect: "Scan"
