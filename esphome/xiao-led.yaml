@@ -2,6 +2,11 @@
 # Styrer to LED-er via innebygd web-grensesnitt:
 #   - LED 1 (D0 / GPIO1): av/på
 #   - LED 2 (D1 / GPIO2): dimbar (PWM)
+#   - LED-stripe: 3 stk. Adafruit DotStar varm hvit (APA102), dimbar
+#       Klokke (CI) -> D8 / GPIO7
+#       Data   (DI) -> D10 / GPIO9
+#       5V           -> 5V-pinnen på XIAO
+#       GND          -> GND
 #
 # Kobling (for hver LED):
 #   Pinne -> motstand (ca. 220–330 ohm) -> LED anode (+, langt bein)
@@ -40,6 +45,11 @@ web_server:
   port: 80
   version: 3
 
+# SPI-buss for DotStar-stripen
+spi:
+  clk_pin: GPIO7        # D8
+  mosi_pin: GPIO9       # D10
+
 output:
   # Digital utgang for LED 1 (av/på)
   - platform: gpio
@@ -51,6 +61,26 @@ output:
     id: led2_pwm
     pin: GPIO2          # D1
     frequency: 1000Hz
+
+  # "Virtuell" utgang som oversetter lysstyrke-slideren til DotStar-stripen.
+  # Varm hvit DotStar har tre hvite brikker per LED, styrt av R-, G- og B-kanalen,
+  # så alle tre kanalene settes likt.
+  - platform: template
+    id: stripe_output
+    type: float
+    write_action:
+      - lambda: |-
+          auto call = id(stripe_raw).make_call();
+          if (state > 0.0f) {
+            call.set_state(true);
+            call.set_color_mode(ColorMode::RGB);
+            call.set_rgb(1.0f, 1.0f, 1.0f);
+            call.set_brightness(state);
+          } else {
+            call.set_state(false);
+          }
+          call.set_transition_length(0);
+          call.perform();
 
 light:
   # LED 1: kun av/på
@@ -67,4 +97,24 @@ light:
     output: led2_pwm
     gamma_correct: 2.8      # gir jevnere dimming for øyet
     default_transition_length: 0.5s
+    restore_mode: ALWAYS_OFF
+
+  # LED-stripe: lysstyrke-slider i web-grensesnittet (samme som LED 2)
+  - platform: monochromatic
+    name: "LED-stripe"
+    id: stripe
+    output: stripe_output
+    gamma_correct: 2.8
+    default_transition_length: 0.5s
+    restore_mode: ALWAYS_OFF
+
+  # Selve DotStar-stripen. Skjult fra web-grensesnittet (internal),
+  # den styres via "LED-stripe" over.
+  - platform: spi_led_strip
+    id: stripe_raw
+    num_leds: 3
+    data_rate: 1MHz
+    internal: true
+    gamma_correct: 1.0      # gamma er allerede brukt i "LED-stripe"
+    default_transition_length: 0s
     restore_mode: ALWAYS_OFF
